@@ -17,6 +17,24 @@ type ComposerProject struct {
 	ComposerJson map[string]interface{}
 }
 
+func (project *ComposerProject) GitUrl() string {
+	url := project.Project.SSHURLToRepo
+
+	if url == "" { // maybe this should be an option
+		return project.Project.HTTPURLToRepo
+	}
+
+	return url
+}
+
+func (project *ComposerProject) Type() string {
+	if composerType, ok := project.ComposerJson["type"]; ok {
+		return composerType.(string)
+	}
+
+	return "library" // because this is the default
+}
+
 func (c *Client) createComposerProject(project *gitlab.Project, file *gitlab.File) (*ComposerProject, error) {
 	// determine composer project name and json file
 	data, err := base64.StdEncoding.DecodeString(file.Content)

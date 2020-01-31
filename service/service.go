@@ -76,8 +76,52 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 	}
 }
 
-func (s *Service) createComposerRepository() (composer.Repository, error) {
-	return composer.Example(), nil
+func (s *Service) createComposerRepository() (*composer.Repository, error) {
+	projects, err := s.gitlabClient.FindAllComposerProjects()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not fetch gitlab composer projects")
+	}
+
+	packages := make(map[string]composer.PackageInfo)
+
+	for _, project := range projects {
+		packages[project.Name] = s.createComposerPackageInfo(project)
+	}
+
+	composerRepository := composer.Repository{Packages: packages}
+	return &composerRepository, nil
+}
+
+func (s *Service) createComposerPackageInfo(project *gitlab.ComposerProject) composer.PackageInfo {
+	packageInfo := make(composer.PackageInfo)
+
+	// add dev-master as HEAD
+	packageInfo["dev-master"] = composer.VersionInfo{
+		Name: project.Name,
+		Source: composer.SourceInfo{
+			Reference: project.Head.ID,
+			Type:      "git",
+			Url:       project.GitUrl(),
+		},
+		Type:    project.Type(),
+		Version: "dev-master",
+	}
+
+	// add all project tags as well
+	for _, tag := range project.Tags {
+		packageInfo[tag.Name] = composer.VersionInfo{
+			Name: project.Name,
+			Source: composer.SourceInfo{
+				Reference: tag.Commit.ID,
+				Type:      "git",
+				Url:       project.GitUrl(),
+			},
+			Type:    project.Type(),
+			Version: tag.Name,
+		}
+	}
+
+	return packageInfo
 }
 
 func (s *Service) Stop() error {
