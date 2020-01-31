@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/atomicptr/gitlab-composer-integration/composer"
 	"log"
 	"net/http"
 )
@@ -41,35 +42,13 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 
 	writer.Header().Set("Content-Type", "application/json")
 
-	// TODO: generate packages json from gitlab
-	json := `{
-		"packages": {
-			"test/test": {
-				"dev-master": {
-					"name": "test/test",
-					"source": {
-						"reference": "882816c7c05b5b5704e84bdb0f7ad69230df3c0c",
-						"type": "git",
-						"url": "git@git.domain.com:test/test.git"
-					},
-					"type": "project",
-					"version": "dev-master"
-				},
-				"v1.5": {
-					"name": "test/test",
-					"source": {
-						"reference": "882816c7c05b5b5704e84bdb0f7ad69230df3c0c",
-						"type": "git",
-						"url": "git@git.domain.com:test/test.git"
-					},
-					"type": "project",
-					"version": "v1.5"
-				}
-			}
-		}
-	}`
+	composerJson := composer.Example()
+	json, err := composerJson.ToJson()
+	if err != nil {
+		s.errorChan <- err
+	}
 
-	_, err := writer.Write([]byte(json))
+	_, err = writer.Write(json)
 	if err != nil {
 		s.errorChan <- err
 	}
