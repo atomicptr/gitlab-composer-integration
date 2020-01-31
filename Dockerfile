@@ -9,7 +9,12 @@ RUN CGO_ENABLED=0 go build -ldflags '-w -extldflags "-static"'
 
 FROM scratch
 
+ENV GCI_GITLAB_URL "https://git.yourdomain.com"
+ENV GCI_GITLAB_TOKEN "your token here..."
+ENV GCI_CACHE_EXPIRE_DURATION "60m"
 ENV GCI_CACHE_FILE_PATH /cache/gitlab-composer-integration.cache
+ENV GCI_PORT 4000
+ENV GCI_HTTP_TIMEOUT "30s"
 
 COPY --from=base /app /app
 WORKDIR /cache
