@@ -74,14 +74,7 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 		}
 	}
 
-	composerJson, err := s.createComposerRepository()
-	if err != nil {
-		s.errorChan <- err
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	json, err := composerJson.ToJson()
+	json, err := s.fetchComposerData()
 	if err != nil {
 		s.errorChan <- err
 		writer.WriteHeader(http.StatusInternalServerError)
@@ -100,6 +93,22 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 	s.cache.Set(cacheKey, json, cache.DefaultExpiration)
 }
 
+func (s *Service) fetchComposerData() ([]byte, error) {
+	composerJson, err := s.createComposerRepository()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create composer repo data")
+	}
+
+	json, err := composerJson.ToJson()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not transform data to json")
+	}
+
+	return json, nil
+}
+
+// TODO: this approach is quite naive, works fine with smaller repositories but you couldn't
+// use this for thousands of them, needs a refactor
 func (s *Service) createComposerRepository() (*composer.Repository, error) {
 	projects, err := s.gitlabClient.FindAllComposerProjects()
 	if err != nil {
