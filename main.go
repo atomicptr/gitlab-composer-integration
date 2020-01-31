@@ -42,6 +42,11 @@ func run() error {
 		return errors.Wrap(err, "error: parsing config")
 	}
 
+	// validating configuration
+	if err := config.Validate(); err != nil {
+		return errors.Wrap(err, "main: Config is invalid")
+	}
+
 	// channel to listen for errors coming from the service
 	serviceErrors := make(chan error, 1)
 
@@ -60,9 +65,7 @@ func run() error {
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
 	svc := service.New(
-		service.Config{
-			Port: config.Port,
-		},
+		config,
 		logger,
 		serviceErrors,
 	)
