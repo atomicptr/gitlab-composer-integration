@@ -13,7 +13,7 @@ import (
 	"github.com/atomicptr/gitlab-composer-integration/service"
 )
 
-const ConfNamespace = ""
+const ConfNamespace = "GCI"
 
 func main() {
 	err := run()
