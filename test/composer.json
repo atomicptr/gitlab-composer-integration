@@ -1,0 +1,12 @@
+{
+    "name": "atomicptr/gitlab-composer-integration-test",
+    "description": "A test composer project",
+    "type": "project",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "http://localhost:4000/"
+        }
+    ],
+    "require": {}
+}
