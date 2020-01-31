@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -14,8 +12,6 @@ import (
 	"github.com/atomicptr/gitlab-composer-integration/composer"
 	"github.com/atomicptr/gitlab-composer-integration/gitlab"
 )
-
-const cacheKey = "gitlab-composer-packages-json-cache"
 
 type Service struct {
 	config       Config
@@ -67,70 +63,6 @@ func (s *Service) Run() error {
 	s.httpHandler.Handle("/", http.RedirectHandler("/packages.json", http.StatusMovedPermanently))
 	s.httpHandler.HandleFunc("/packages.json", s.handlePackagesJsonEndpoint)
 	return s.httpServer.ListenAndServe()
-}
-
-func (s *Service) restoreFileCacheIfItExists() {
-	cachePath := s.getCacheFilePath()
-
-	if _, err := os.Stat(cachePath); os.IsNotExist(err) {
-		s.logger.Printf("can't restore cache from file because \"%s\" does not exist.", cachePath)
-		return
-	}
-
-	err := s.cache.LoadFile(cachePath)
-	if err != nil {
-		s.logger.Printf("could not restore cache from file because %s", err)
-		return
-	}
-
-	s.logger.Printf("successfully loaded cache from file %s", cachePath)
-}
-
-func (s *Service) persistCacheInFile() {
-	cachePath := s.getCacheFilePath()
-
-	err := s.cache.SaveFile(cachePath)
-	if err != nil {
-		s.logger.Printf("could not persist cache in file because %s", err)
-		return
-	}
-
-	s.logger.Printf("successfully persisted cache in file %s", cachePath)
-}
-
-func (s *Service) getCacheFilePath() string {
-	cachePath := s.config.CacheFilePath
-
-	if cachePath == "" {
-		cachePath = path.Join(os.TempDir(), cacheKey)
-	}
-
-	return cachePath
-}
-
-func (s *Service) cacheUpdateHandler() {
-	for s.running {
-		_, expirationTime, found := s.cache.GetWithExpiration(cacheKey)
-
-		// set found to false when expiration time has passed to re-cache data
-		if time.Now().After(expirationTime) {
-			found = false
-		}
-
-		if !found {
-			s.logger.Println("no cache found (or is expired), creating new one")
-			data, err := s.fetchComposerData()
-			if err == nil {
-				s.cache.Set(cacheKey, data, cache.DefaultExpiration)
-				s.persistCacheInFile()
-			} else {
-				s.logger.Println(errors.Wrap(err, "could not fetch composer data"))
-			}
-		}
-
-		// TODO: replace this with a ticker
-		time.Sleep(30 * time.Second)
-	}
 }
 
 func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request *http.Request) {
