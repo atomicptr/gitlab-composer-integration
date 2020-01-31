@@ -1,5 +1,7 @@
 FROM alpine:3.11 as base
 
+ENV GCI_CACHE_FILE_PATH /cache/gitlab-composer-integration.cache
+
 RUN apk add --no-cache build-base go git
 
 WORKDIR /app
