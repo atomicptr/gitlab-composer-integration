@@ -51,6 +51,10 @@ func (s *Service) Run() error {
 		return errors.Wrap(err, "can't connect to gitlab")
 	}
 
+	if s.config.GitlabToken == "" {
+		s.logger.Println("your Gitlab token is empty, you can only see public repositories this way")
+	}
+
 	s.httpHandler.Handle("/", http.RedirectHandler("/packages.json", http.StatusMovedPermanently))
 	s.httpHandler.HandleFunc("/packages.json", s.handlePackagesJsonEndpoint)
 	return s.httpServer.ListenAndServe()
