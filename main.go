@@ -42,6 +42,9 @@ func run() error {
 		return errors.Wrap(err, "error: parsing config")
 	}
 
+	// channel to listen for errors coming from the service
+	serviceErrors := make(chan error, 1)
+
 	// service starting
 	logger.Printf("main: gitlab-composer-integration starting...")
 	defer logger.Printf("main: Done")
@@ -60,10 +63,9 @@ func run() error {
 		service.Config{
 			Port: config.Port,
 		},
+		logger,
+		serviceErrors,
 	)
-
-	// channel to listen for errors coming from the service
-	serviceErrors := make(chan error, 1)
 
 	go func() {
 		serviceErrors <- svc.Run()
@@ -75,7 +77,10 @@ func run() error {
 	case sig := <-shutdown:
 		logger.Printf("main: %v shutdown...", sig)
 
-		svc.Stop()
+		err := svc.Stop()
+		if err != nil {
+			logger.Printf("error: %s", err)
+		}
 
 		switch {
 		case sig == syscall.SIGSTOP:
