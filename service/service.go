@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -22,6 +23,7 @@ type Service struct {
 	cache        *cache.Cache
 	logger       *log.Logger
 	errorChan    chan error
+	running      bool
 }
 
 func New(config Config, logger *log.Logger, errorChan chan error) *Service {
@@ -55,9 +57,36 @@ func (s *Service) Run() error {
 		s.logger.Println("your Gitlab token is empty, you can only see public repositories this way")
 	}
 
+	s.running = true
+	go s.cacheUpdateHandler()
+
 	s.httpHandler.Handle("/", http.RedirectHandler("/packages.json", http.StatusMovedPermanently))
 	s.httpHandler.HandleFunc("/packages.json", s.handlePackagesJsonEndpoint)
 	return s.httpServer.ListenAndServe()
+}
+
+func (s *Service) cacheUpdateHandler() {
+	for s.running {
+		_, expirationTime, found := s.cache.GetWithExpiration(cacheKey)
+
+		// set found to false when expiration time has passed to re-cache data
+		if time.Now().After(expirationTime) {
+			found = false
+		}
+
+		if !found {
+			s.logger.Println("no cache found (or is expired), creating new one")
+			data, err := s.fetchComposerData()
+			if err == nil {
+				s.cache.Set(cacheKey, data, cache.NoExpiration)
+			} else {
+				s.logger.Println(errors.Wrap(err, "could not fetch composer data"))
+			}
+		}
+
+		// TODO: replace this with a ticker
+		time.Sleep(30 * time.Second)
+	}
 }
 
 func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request *http.Request) {
@@ -65,32 +94,19 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 
 	writer.Header().Set("Content-Type", "application/json")
 
-	if content, found := s.cache.Get(cacheKey); found {
-		_, err := writer.Write(content.([]byte))
-		if err != nil {
-			s.errorChan <- errors.Wrap(err, "could not read cache")
-		} else {
-			return // nothing was wrong, just return here
+	// busy loop until you can get a cache...
+	for {
+		if content, found := s.cache.Get(cacheKey); found {
+			_, err := writer.Write(content.([]byte))
+			if err != nil {
+				s.logger.Println(errors.Wrap(err, "could not read cache"))
+			}
+
+			return
 		}
-	}
 
-	json, err := s.fetchComposerData()
-	if err != nil {
-		s.errorChan <- err
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
+		time.Sleep(5 * time.Second)
 	}
-
-	_, err = writer.Write(json)
-	if err != nil {
-		s.errorChan <- err
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// everything was fine with the data, might as well cache it...
-	s.logger.Println("creating new cache")
-	s.cache.Set(cacheKey, json, cache.DefaultExpiration)
 }
 
 func (s *Service) fetchComposerData() ([]byte, error) {
@@ -107,8 +123,6 @@ func (s *Service) fetchComposerData() ([]byte, error) {
 	return json, nil
 }
 
-// TODO: this approach is quite naive, works fine with smaller repositories but you couldn't
-// use this for thousands of them, needs a refactor
 func (s *Service) createComposerRepository() (*composer.Repository, error) {
 	projects, err := s.gitlabClient.FindAllComposerProjects()
 	if err != nil {
@@ -158,6 +172,7 @@ func (s *Service) createComposerPackageInfo(project *gitlab.ComposerProject) com
 }
 
 func (s *Service) Stop() error {
+	s.running = false
 	err := s.httpServer.Close()
 	if err != nil {
 		return err
