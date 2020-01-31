@@ -8,5 +8,8 @@
             "url": "http://localhost:4000/"
         }
     ],
+    "config": {
+        "secure-http": false
+    },
     "require": {}
 }
