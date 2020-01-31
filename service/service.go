@@ -2,18 +2,24 @@ package service
 
 import (
 	"fmt"
-	"github.com/atomicptr/gitlab-composer-integration/composer"
-	"github.com/atomicptr/gitlab-composer-integration/gitlab"
-	"github.com/pkg/errors"
 	"log"
 	"net/http"
+
+	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
+
+	"github.com/atomicptr/gitlab-composer-integration/composer"
+	"github.com/atomicptr/gitlab-composer-integration/gitlab"
 )
+
+const cacheKey = "gitlab-composer-packages-json-cache"
 
 type Service struct {
 	config       Config
 	httpHandler  *http.ServeMux
 	httpServer   *http.Server
 	gitlabClient *gitlab.Client
+	cache        *cache.Cache
 	logger       *log.Logger
 	errorChan    chan error
 }
@@ -34,6 +40,7 @@ func New(config Config, logger *log.Logger, errorChan chan error) *Service {
 			config.GitlabToken,
 			logger,
 		),
+		cache:     cache.New(config.CacheExpireDuration, cache.NoExpiration),
 		logger:    logger,
 		errorChan: errorChan,
 	}
@@ -53,6 +60,15 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 	s.logger.Printf("Request to \"%s\" from %s (%s)", request.URL, request.UserAgent(), request.RemoteAddr)
 
 	writer.Header().Set("Content-Type", "application/json")
+
+	if content, found := s.cache.Get(cacheKey); found {
+		_, err := writer.Write(content.([]byte))
+		if err != nil {
+			s.errorChan <- errors.Wrap(err, "could not read cache")
+		} else {
+			return // nothing was wrong, just return here
+		}
+	}
 
 	composerJson, err := s.createComposerRepository()
 	if err != nil {
@@ -74,6 +90,10 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// everything was fine with the data, might as well cache it...
+	s.logger.Println("creating new cache")
+	s.cache.Set(cacheKey, json, cache.DefaultExpiration)
 }
 
 func (s *Service) createComposerRepository() (*composer.Repository, error) {
