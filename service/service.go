@@ -108,7 +108,9 @@ func (s *Service) createComposerRepository() (*composer.Repository, error) {
 	packages := make(map[string]composer.PackageInfo)
 
 	for _, project := range projects {
-		packages[project.Name] = s.createComposerPackageInfo(project)
+		if s.config.IsVendorAllowed(project.Vendor) {
+			packages[project.Name] = s.createComposerPackageInfo(project)
+		}
 	}
 
 	composerRepository := composer.Repository{Packages: packages}

@@ -4,13 +4,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
+	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/xanzy/go-gitlab"
 )
 
 type ComposerProject struct {
 	Name         string
+	Vendor       string
 	Project      *gitlab.Project
 	Head         *gitlab.Commit
 	Tags         []*gitlab.Tag
@@ -53,6 +55,7 @@ func (c *Client) createComposerProject(project *gitlab.Project, file *gitlab.Fil
 	}
 
 	name := composerJson["name"].(string)
+	vendor := extractVendorFromComposerName(name)
 
 	// determine head commit
 	commits, _, err := c.gitlab.Commits.ListCommits(project.ID, &gitlab.ListCommitsOptions{
@@ -79,6 +82,7 @@ func (c *Client) createComposerProject(project *gitlab.Project, file *gitlab.Fil
 
 	composerProject := ComposerProject{
 		Name:         name,
+		Vendor:       vendor,
 		Project:      project,
 		Head:         headCommit,
 		Tags:         tags,
@@ -86,4 +90,12 @@ func (c *Client) createComposerProject(project *gitlab.Project, file *gitlab.Fil
 	}
 
 	return &composerProject, nil
+}
+
+func extractVendorFromComposerName(composerName string) string {
+	delimiterIndex := strings.Index(composerName, "/")
+	if delimiterIndex >= 0 {
+		return composerName[0:delimiterIndex]
+	}
+	return ""
 }

@@ -10,6 +10,7 @@ type Config struct {
 	GitlabToken         string        `conf:"required,noprint"`
 	CacheExpireDuration time.Duration `conf:"default:60m"`
 	CacheFilePath       string        `conf:""`
+	VendorWhitelist     []string      `conf:""`
 	Port                int           `conf:"default:4000"`
 	HttpTimeout         time.Duration `conf:"default:30s"`
 }
@@ -21,4 +22,20 @@ func (config *Config) Validate() error {
 	}
 
 	return nil
+}
+
+func (config *Config) IsVendorAllowed(vendorName string) bool {
+	// vendor whitelist is empty, allow everything
+	if len(config.VendorWhitelist) == 0 {
+		return true
+	}
+
+	// vendor whitelist is enabled, only allow specified vendors
+	for _, name := range config.VendorWhitelist {
+		if name == vendorName {
+			return true
+		}
+	}
+
+	return false
 }
