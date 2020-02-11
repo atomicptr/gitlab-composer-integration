@@ -11,5 +11,10 @@
     "config": {
         "secure-http": false
     },
-    "require": {}
+    "require": {
+        "ganzgraph/gg_library": "@dev || dev-master",
+        "ganzgraph/gg_base": "*@dev",
+        "ganzgraph/ama_template": "*@dev",
+        "ganzgraph/gg_news": "^9"
+    }
 }
