@@ -53,6 +53,11 @@ func (s *Service) Run() error {
 		s.logger.Println("your Gitlab token is empty, you can only see public repositories this way")
 	}
 
+	// if no cache option is set, flush all caches...
+	if s.config.NoCache {
+		s.cache.Flush()
+	}
+
 	s.restoreFileCacheIfItExists()
 
 	s.running = true
@@ -60,6 +65,7 @@ func (s *Service) Run() error {
 
 	s.httpHandler.Handle("/", http.RedirectHandler("/packages.json", http.StatusMovedPermanently))
 	s.httpHandler.HandleFunc("/packages.json", s.handlePackagesJsonEndpoint)
+	s.httpHandler.HandleFunc("/p", s.handleProviderEndpoint)
 	s.httpHandler.HandleFunc("/notify", s.handleNotifyEndpoint)
 	return s.httpServer.ListenAndServe()
 }

@@ -1,14 +1,20 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 
 	"github.com/atomicptr/gitlab-composer-integration/composer"
 	"github.com/atomicptr/gitlab-composer-integration/gitlab"
 )
+
+var packageCounter int64
 
 func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request *http.Request) {
 	s.logger.Printf("Request to \"%s\" from %s (%s)\n", request.URL, request.UserAgent(), request.RemoteAddr)
@@ -17,7 +23,7 @@ func (s *Service) handlePackagesJsonEndpoint(writer http.ResponseWriter, request
 
 	// busy loop until you can get a cache...
 	for {
-		if content, found := s.cache.Get(cacheKey); found {
+		if content, found := s.cache.Get(indexCacheKey); found {
 			_, err := writer.Write(content.([]byte))
 			if err != nil {
 				s.logger.Println(errors.Wrap(err, "could not read cache"))
@@ -50,22 +56,64 @@ func (s *Service) createComposerRepository() (*composer.Repository, error) {
 		return nil, errors.Wrap(err, "could not fetch gitlab composer projects")
 	}
 
-	packages := make(map[string]composer.PackageInfo)
+	packageCounter = 0
+
+	providers := make(map[string]composer.Provider)
 
 	for _, project := range projects {
 		if s.config.IsVendorAllowed(project.Vendor) {
-			packages[project.Name] = s.createComposerPackageInfo(project)
+			packages := map[string]composer.PackageInfo{}
+			packages[project.Name] = createComposerPackageInfo(project)
+
+			packageData := composer.ProviderRepository{
+				Packages: packages,
+			}
+
+			data, err := json.Marshal(packageData)
+			if err != nil {
+				s.logger.Println(errors.Wrapf(err, "could not cache project: %s", project.Name))
+			}
+
+			// store package in cache
+			s.cache.Set(
+				getProjectCacheIdentifier(project.Name),
+				data,
+				cache.DefaultExpiration,
+			)
+
+			hasher := sha256.New()
+			hasher.Write(data)
+			hash := fmt.Sprintf("%x", hasher.Sum(nil))
+
+			providers[project.Name] = composer.Provider{Sha256: hash}
+
+			// store hash
+			s.cache.Set(
+				getProjectHashIdentifier(project.Name),
+				hash,
+				cache.DefaultExpiration,
+			)
 		}
 	}
 
 	composerRepository := composer.Repository{
-		Packages:    packages,
-		NotifyBatch: "/notify",
+		Packages:     []struct{}{},
+		NotifyBatch:  "/notify",
+		ProvidersUrl: "/p?package=%package%&hash=%hash%",
+		Providers:    providers,
 	}
 	return &composerRepository, nil
 }
 
-func (s *Service) createComposerPackageInfo(project *gitlab.ComposerProject) composer.PackageInfo {
+func getProjectCacheIdentifier(projectName string) string {
+	return fmt.Sprintf("project:%s", projectName)
+}
+
+func getProjectHashIdentifier(projectName string) string {
+	return fmt.Sprintf("hash:%s", projectName)
+}
+
+func createComposerPackageInfo(project *gitlab.ComposerProject) composer.PackageInfo {
 	packageInfo := make(composer.PackageInfo)
 
 	// add dev-master as HEAD
@@ -78,6 +126,7 @@ func (s *Service) createComposerPackageInfo(project *gitlab.ComposerProject) com
 		},
 		Type:    project.Type(),
 		Version: "dev-master",
+		Uid:     nextPackageId(),
 	}
 
 	// add all project tags as well
@@ -91,8 +140,14 @@ func (s *Service) createComposerPackageInfo(project *gitlab.ComposerProject) com
 			},
 			Type:    project.Type(),
 			Version: tag.Name,
+			Uid:     nextPackageId(),
 		}
 	}
 
 	return packageInfo
+}
+
+func nextPackageId() int64 {
+	packageCounter++
+	return packageCounter
 }

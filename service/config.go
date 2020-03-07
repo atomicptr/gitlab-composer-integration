@@ -13,6 +13,7 @@ type Config struct {
 	VendorWhitelist     []string      `conf:""`
 	Port                int           `conf:"default:4000"`
 	HttpTimeout         time.Duration `conf:"default:30s"`
+	NoCache             bool          `conf:"default:false"`
 }
 
 func (config *Config) Validate() error {

@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-const cacheKey = "gitlab-composer-packages-json-cache"
+const indexCacheKey = "index"
 
 func (s *Service) cacheUpdateHandler() {
 	for s.running {
-		_, expirationTime, found := s.cache.GetWithExpiration(cacheKey)
+		_, expirationTime, found := s.cache.GetWithExpiration(indexCacheKey)
 
 		// set found to false when expiration time has passed to re-cache data
 		if time.Now().After(expirationTime) {
@@ -24,7 +24,7 @@ func (s *Service) cacheUpdateHandler() {
 			s.logger.Println("no cache found (or is expired), creating new one")
 			data, err := s.fetchComposerData()
 			if err == nil {
-				s.cache.Set(cacheKey, data, cache.DefaultExpiration)
+				s.cache.Set(indexCacheKey, data, cache.DefaultExpiration)
 				s.persistCacheInFile()
 			} else {
 				s.logger.Println(errors.Wrap(err, "could not fetch composer data"))
@@ -37,6 +37,10 @@ func (s *Service) cacheUpdateHandler() {
 }
 
 func (s *Service) restoreFileCacheIfItExists() {
+	if s.config.NoCache {
+		return
+	}
+
 	cachePath := s.getCacheFilePath()
 
 	if _, err := os.Stat(cachePath); os.IsNotExist(err) {
@@ -69,7 +73,7 @@ func (s *Service) getCacheFilePath() string {
 	cachePath := s.config.CacheFilePath
 
 	if cachePath == "" {
-		cachePath = path.Join(os.TempDir(), cacheKey)
+		cachePath = path.Join(os.TempDir(), "gitlab-composer-integration-cache")
 	}
 
 	return cachePath
