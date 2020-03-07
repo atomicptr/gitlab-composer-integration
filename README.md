@@ -1,4 +1,4 @@
-# gitlab-composer-integration
+# gitlab-composer-integration ![](https://goreportcard.com/badge/github.com/atomicptr/gitlab-composer-integration)
 
 A composer repository for your Gitlab instance.
 
@@ -36,6 +36,50 @@ $ ./gitlab-composer-integration --gitlab-url=https://git.yourdomain.com \
     --gitlab-token="your token..."
 ```
 
+## Configuration
+
+You can provide all options as command line argument or as environment variable.
+
+### Gitlab Url (--gitlab-url / GCI_GITLAB_URL) <string> required
+
+The url of your Gitlab instance (for instance https://gitlab.mydomain.com)
+
+### Gitlab Token (--gitlab-token / GCI_GITLAB_TOKEN) <string> required
+
+A Gitlab user token with access to the repositories you want to serve via this service.
+
+1. Go to **https://gitlab.mydomain.com/profile/personal_access_tokens** (User Icon > Settings > Access Token)
+2. Enter a name, and the **api** and **read_repository** scope.
+3. Create and copy your token!
+
+### Cache Expire Duration (--cache-expire-duration / GCI_CACHE_EXPIRE_DURATION) duration default: 60m
+
+Time until the cache will be invalidated.
+
+### Cache File Path (--cache-file-path / $GCI_CACHE_FILE_PATH) string
+
+Location where the cache file will be stored
+
+### Vendor Whitelist (--vendor-whitelist / $GCI_VENDOR_WHITELIST) []string
+
+A comma seperated list of allowed vendors, for example:
+
+```
+$ ./gitlab-composer-integration ... --vendor-whitelist=psr,typo3,myvendor
+```
+
+### Port (--port / $GCI_PORT) int default: 4000
+
+Well... the port this service will be running as.
+
+### HTTP Timeout (--http-timeout / $GCI_HTTP_TIMEOUT) duration default: 30s
+
+Timeout for requests to Gitlab.
+
+### No Cache (--no-cache / $GCI_NO_CACHE) boolean default: false
+
+Start without cache.
+
 ## FAQ
 
 ### How can I add a custom repository to composer?
@@ -70,6 +114,7 @@ allow/deny access to repositories.
     your composer projects (at least the ones which the Gitlab token
     can access), pulling will however only work if the user can pull
     the repositories via git.
+* Support for Gitlab webhooks to invalidate the cache.
    
 # License
 
