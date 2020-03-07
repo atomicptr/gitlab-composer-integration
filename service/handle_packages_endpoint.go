@@ -72,6 +72,13 @@ func (s *Service) createComposerRepository() (*composer.Repository, error) {
 			data, err := json.Marshal(packageData)
 			if err != nil {
 				s.logger.Println(errors.Wrapf(err, "could not cache project: %s", project.Name))
+				continue
+			}
+
+			hash, err := createHash(data)
+			if err != nil {
+				s.logger.Println(errors.Wrap(err, "could not create sha256 hash"))
+				continue
 			}
 
 			// store package in cache
@@ -81,18 +88,14 @@ func (s *Service) createComposerRepository() (*composer.Repository, error) {
 				cache.DefaultExpiration,
 			)
 
-			hasher := sha256.New()
-			hasher.Write(data)
-			hash := fmt.Sprintf("%x", hasher.Sum(nil))
-
-			providers[project.Name] = composer.Provider{Sha256: hash}
-
 			// store hash
 			s.cache.Set(
 				getProjectHashIdentifier(project.Name),
 				hash,
 				cache.DefaultExpiration,
 			)
+
+			providers[project.Name] = composer.Provider{Sha256: hash}
 		}
 	}
 
@@ -103,6 +106,15 @@ func (s *Service) createComposerRepository() (*composer.Repository, error) {
 		Providers:    providers,
 	}
 	return &composerRepository, nil
+}
+
+func createHash(str []byte) (string, error) {
+	hasher := sha256.New()
+	_, err := hasher.Write(str)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }
 
 func getProjectCacheIdentifier(projectName string) string {
