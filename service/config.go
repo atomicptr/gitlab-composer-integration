@@ -2,7 +2,10 @@ package service
 
 import (
 	"net/url"
+	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type Config struct {
@@ -14,17 +17,24 @@ type Config struct {
 	Port                int           `conf:"default:4000"`
 	HttpTimeout         time.Duration `conf:"default:30s"`
 	NoCache             bool          `conf:"default:false"`
+	HttpCredentials     string        `conf:""`
 }
 
+// Validate the configuration
 func (config *Config) Validate() error {
 	_, err := url.Parse(config.GitlabUrl)
 	if err != nil {
 		return err
 	}
 
+	if len(config.HttpCredentials) > 0 && !strings.Contains(config.HttpCredentials, ":") {
+		return errors.New("http credentials should be in the form of \"username:password\" or empty.")
+	}
+
 	return nil
 }
 
+// IsVendorAllowed checks if the given vendor is allowed
 func (config *Config) IsVendorAllowed(vendorName string) bool {
 	// vendor whitelist is empty, allow everything
 	if len(config.VendorWhitelist) == 0 {
@@ -39,4 +49,14 @@ func (config *Config) IsVendorAllowed(vendorName string) bool {
 	}
 
 	return false
+}
+
+// GetHttpCredentials returns username:password combination as username, password pair
+func (config *Config) GetHttpCredentials() (string, string) {
+	parts := strings.Split(config.HttpCredentials, ":")
+	if len(parts) < 2 {
+		return "", ""
+	}
+	// return everything from the first match and the rest
+	return parts[0], config.HttpCredentials[len(parts[0])+1:]
 }

@@ -63,10 +63,12 @@ func (s *Service) Run() error {
 	s.running = true
 	go s.cacheUpdateHandler()
 
+	username, password := s.config.GetHttpCredentials()
+
 	s.httpHandler.Handle("/", http.RedirectHandler("/packages.json", http.StatusMovedPermanently))
-	s.httpHandler.HandleFunc("/packages.json", s.handlePackagesJsonEndpoint)
-	s.httpHandler.HandleFunc("/p", s.handleProviderEndpoint)
-	s.httpHandler.HandleFunc("/notify", s.handleNotifyEndpoint)
+	s.httpHandler.HandleFunc("/packages.json", basicAuth(username, password, s.handlePackagesJsonEndpoint))
+	s.httpHandler.HandleFunc("/p", basicAuth(username, password, s.handleProviderEndpoint))
+	s.httpHandler.HandleFunc("/notify", basicAuth(username, password, s.handleNotifyEndpoint))
 	return s.httpServer.ListenAndServe()
 }
 

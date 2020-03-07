@@ -9,7 +9,7 @@ import (
 
 func (s *Service) handleNotifyEndpoint(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != "POST" {
-		writer.WriteHeader(http.StatusBadRequest)
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 

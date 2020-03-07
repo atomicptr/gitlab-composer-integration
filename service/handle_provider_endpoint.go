@@ -17,14 +17,14 @@ func (s *Service) handleProviderEndpoint(writer http.ResponseWriter, request *ht
 	hashData, ok := s.cache.Get(getProjectHashIdentifier(packageName))
 	if !ok || hash != hashData {
 		s.logger.Printf("could not find package %s (hash: %s)\n", packageName, hash)
-		writer.WriteHeader(http.StatusNotFound)
+		http.Error(writer, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	data, ok := s.cache.Get(getProjectCacheIdentifier(packageName))
 	if !ok {
 		s.logger.Printf("could not find package %s (hash %s)\n", packageName, hash)
-		writer.WriteHeader(http.StatusNotFound)
+		http.Error(writer, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 

@@ -1,4 +1,6 @@
-# gitlab-composer-integration ![](https://goreportcard.com/badge/github.com/atomicptr/gitlab-composer-integration)
+# gitlab-composer-integration
+[![](https://api.travis-ci.com/atomicptr/gitlab-composer-integration.svg?branch=master)](https://travis-ci.com/atomicptr/gitlab-composer-integration)
+[![](https://goreportcard.com/badge/github.com/atomicptr/gitlab-composer-integration)](https://goreportcard.com/report/github.com/atomicptr/gitlab-composer-integration)
 
 A composer repository for your Gitlab instance.
 
@@ -80,6 +82,10 @@ Timeout for requests to Gitlab.
 
 Start without cache.
 
+### HTTP Credentials (--http-credentials / $GCI_HTTP_CREDENTIALS) string
+
+Secure your composer repository from prying eyes by protecting it with a basic HTTP auth. For an example scroll down a bit.
+
 ## FAQ
 
 ### How can I add a custom repository to composer?
@@ -103,6 +109,29 @@ You can control the available projects via the Gitlab user token provided to the
 service. For instance you could create a seperate user for this service (recommended anyway) and
 allow/deny access to repositories. 
 
+### How can I add authentication to my repository?
+
+Just use the HTTP Credentials option:
+
+```bash
+$ ./gitlab-composer-integration ... --http-credentials="username:password"
+```
+
+And within your composer.json you add the credentials like this:
+
+```json
+{
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://username:password@composer.yourdomain.com"
+    }
+  ]
+}
+```
+
+[You can read more about HTTP basic authentication with composer here.](https://getcomposer.org/doc/articles/http-basic-authentication.md)
+
 ## TODOs / Limitations
 
 * Fetching data from Gitlab is quite naive in it's current state,
@@ -110,10 +139,6 @@ allow/deny access to repositories.
     has thousands of composer repositories. Not a huge priority for
     me right now as I only have a few hundred composer projects in my
     Gitlab instance.
-* Authorization for the composer repository itself. Everyone can see
-    your composer projects (at least the ones which the Gitlab token
-    can access), pulling will however only work if the user can pull
-    the repositories via git.
 * Support for Gitlab webhooks to invalidate the cache.
    
 # License
