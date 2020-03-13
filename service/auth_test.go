@@ -31,6 +31,30 @@ func TestBasicAuthUnauthorized(t *testing.T) {
 	assert.EqualValues(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
+func TestBasicAuthWithoutCredentials(t *testing.T) {
+	handlerFunc := func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		_, err := writer.Write([]byte("OK"))
+		assert.Nil(t, err)
+	}
+	wrappedHandlerFunc := basicAuth("", "", handlerFunc)
+	server := httptest.NewServer(http.HandlerFunc(wrappedHandlerFunc))
+	defer server.Close()
+
+	request, err := http.NewRequest("GET", server.URL, nil)
+	assert.Nil(t, err)
+
+	response, err := http.DefaultClient.Do(request)
+	assert.Nil(t, err)
+
+	assert.EqualValues(t, http.StatusOK, response.StatusCode)
+
+	body, err := ioutil.ReadAll(response.Body)
+	assert.Nil(t, err)
+
+	assert.EqualValues(t, "OK", string(body))
+}
+
 func TestBasicAuth(t *testing.T) {
 	handlerFunc := func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
@@ -59,6 +83,16 @@ func TestBasicAuth(t *testing.T) {
 
 func TestIsAuthenticatedInvalidPrefix(t *testing.T) {
 	customAuthString := "Secret dXNlcm5hbWU6cGFzczp3b3Jk"
+	assert.False(t, isAuthenticated("username", "pass:word", makeTestRequest(customAuthString)))
+}
+
+func TestIsAuthenticatedInvalidBase64String(t *testing.T) {
+	customAuthString := "Basic This is not a base64 string"
+	assert.False(t, isAuthenticated("username", "pass:word", makeTestRequest(customAuthString)))
+}
+
+func TestIsAuthenticatedInvalidAuthStringCreds(t *testing.T) {
+	customAuthString := "Basic dXNlcm5hbWVwYXNzd29yZA=="
 	assert.False(t, isAuthenticated("username", "pass:word", makeTestRequest(customAuthString)))
 }
 

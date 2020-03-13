@@ -11,6 +11,13 @@ func TestValidateInvalidConfigWithoutGitlabUrl(t *testing.T) {
 	assert.Nil(t, config.Validate())
 }
 
+func TestValidateInvalidUrlFormat(t *testing.T) {
+	config := Config{
+		GitlabUrl: "https://This is not an URL!",
+	}
+	assert.NotNil(t, config.Validate())
+}
+
 func TestValidateInvalidConfigWithInvalidHttpCredentials(t *testing.T) {
 	config := Config{
 		GitlabUrl:       "https://gitlab.com",

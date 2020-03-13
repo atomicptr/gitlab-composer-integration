@@ -41,7 +41,8 @@ func New(baseUrl, token string, logger *log.Logger) *Client {
 	logger.Printf("using \"%s\" as gitlab base url", gitlabBaseUrl)
 	err := git.SetBaseURL(gitlabBaseUrl)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Println(err)
+		return nil
 	}
 
 	client := &Client{
