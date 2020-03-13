@@ -121,8 +121,8 @@ func getProjectCacheIdentifier(projectName string) string {
 	return fmt.Sprintf("project:%s", projectName)
 }
 
-func getProjectHashIdentifier(projectName string) string {
-	return fmt.Sprintf("hash:%s", projectName)
+func getProjectHashIdentifier(hash string) string {
+	return fmt.Sprintf("hash:%s", hash)
 }
 
 func createComposerPackageInfo(project *gitlab.ComposerProject) composer.PackageInfo {
