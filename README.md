@@ -1,6 +1,7 @@
 # gitlab-composer-integration
-[![](https://api.travis-ci.com/atomicptr/gitlab-composer-integration.svg?branch=master)](https://travis-ci.com/atomicptr/gitlab-composer-integration)
-[![](https://goreportcard.com/badge/github.com/atomicptr/gitlab-composer-integration)](https://goreportcard.com/report/github.com/atomicptr/gitlab-composer-integration)
+[![Travis CI](https://api.travis-ci.com/atomicptr/gitlab-composer-integration.svg?branch=master)](https://travis-ci.com/atomicptr/gitlab-composer-integration)
+[![Go Report Card](https://goreportcard.com/badge/github.com/atomicptr/gitlab-composer-integration)](https://goreportcard.com/report/github.com/atomicptr/gitlab-composer-integration)
+[![Coverage Status](https://coveralls.io/repos/github/atomicptr/gitlab-composer-integration/badge.svg?branch=master)](https://coveralls.io/github/atomicptr/gitlab-composer-integration?branch=master)
 
 A composer repository for your Gitlab instance.
 
