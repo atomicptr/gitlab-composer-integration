@@ -1,3 +1,7 @@
+# Discontinued
+
+With the release of Gitlab 13.2 this is now part of the Gitlab core making this project obsolet. Read more here: https://about.gitlab.com/releases/2020/07/22/gitlab-13-2-released/#manage-php-dependencies-with-the-gitlab-composer-repository
+
 # gitlab-composer-integration
 [![Travis CI](https://api.travis-ci.com/atomicptr/gitlab-composer-integration.svg?branch=master)](https://travis-ci.com/atomicptr/gitlab-composer-integration)
 [![Go Report Card](https://goreportcard.com/badge/github.com/atomicptr/gitlab-composer-integration)](https://goreportcard.com/report/github.com/atomicptr/gitlab-composer-integration)
